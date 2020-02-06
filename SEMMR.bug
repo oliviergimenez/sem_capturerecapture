@@ -1,0 +1,70 @@
+model
+{
+
+  for (i in 1:N)  # for each individual
+  {
+
+    # '1' means it is alive the first time it was seen
+    alive[i, First[i]] ~ dbern(1) 
+    
+    # for each year after the first
+    for (j in (First[i]+1):Years)  
+    {
+    
+# state equation
+      alivep[i,j] <- phi[i] * alive[i, j-1] 
+      alive[i,j] ~ dbern(alivep[i,j])
+      # observation equation
+      sightp[i,j] <- p * alive[i, j]        
+      dat[i, j] ~ dbern(sightp[i,j])
+    }
+  }
+
+
+# Define the priors for phi and p
+for (i in 1:N){
+
+# measurement model for the x's
+mu1[i] <- eta1[i]
+cov[i,1] ~ dnorm(mu1[i],tau12x)
+
+mu2[i] <- gamma12 * eta1[i]
+cov[i,2] ~ dnorm(mu2[i],tau12x)
+
+mu3[i] <- gamma13 * eta1[i]
+cov[i,3] ~ dnorm(mu3[i],tau34x)
+
+mu4[i] <- gamma14 * eta1[i]
+cov[i,4] ~ dnorm(mu4[i],tau34x)
+
+# measurement model for the y's
+phi[i] <- 1/(1+exp(-eta2[i]))
+
+# structural model
+deltaeta2[i] ~ dnorm(0,1)
+
+eta2[i] <- beta21 * eta1[i] + beta212 * pow(eta1[i],2) + deltaeta2[i] 
+eta1[i] ~ dnorm(0, tauksi1)
+
+}
+
+# priors for the factor loadings
+gamma12 ~ dnorm(0,1)
+gamma13 ~ dnorm(0,1)
+gamma14 ~ dnorm(0,1)
+beta21 ~ dnorm(0,1)
+beta212 ~ dnorm(0,1)
+
+## Prior distributions of the precision parameters
+sig12x ~ dunif(0,10)
+tau12x <- 1/(sig12x*sig12x)
+sig34x ~ dunif(0,10)
+tau34x <- 1/(sig34x*sig34x)
+sigksi1 ~ dunif(0,10)
+tauksi1 <- 1/(sigksi1*sigksi1)
+
+# prior on the detection probability
+p ~ dunif(0,1)
+
+}
+
